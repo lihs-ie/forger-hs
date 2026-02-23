@@ -1,13 +1,14 @@
--- |
--- Module      : Forger.Internal
--- Description : Internal utilities for deterministic generation
--- Copyright   : (c) 2026 lihs
--- License     : MIT
---
--- Provides a deterministic hash function ('scramble') and
--- predefined character sets used by 'Forger.Mold.stringMold'.
-module Forger.Internal
-  ( -- * Hash function
+{- |
+Module      : Forger.Internal
+Description : Internal utilities for deterministic generation
+Copyright   : (c) 2026 lihs
+License     : MIT
+
+Provides a deterministic hash function ('scramble') and
+predefined character sets used by 'Forger.Mold.stringMold'.
+-}
+module Forger.Internal (
+    -- * Hash function
     scramble,
 
     -- * Character sets
@@ -16,7 +17,7 @@ module Forger.Internal
     slug,
     numeric,
     symbolCharacters,
-  )
+)
 where
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
@@ -31,22 +32,22 @@ bitReverse original = foldl' step original (zip paddings masks)
     masks = [0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0xFFFFFFFF]
     step :: Word32 -> (Int, Word32) -> Word32
     step carry (padding, mask) =
-      let left = (carry `shiftR` padding) .&. mask
-          right = (carry .&. mask) `shiftL` padding
-       in left .|. right
+        let left = (carry `shiftR` padding) .&. mask
+            right = (carry .&. mask) `shiftL` padding
+         in left .|. right
 
 extendedGCD :: Integer -> Integer -> (Integer, Integer, Integer)
 extendedGCD 0 b = (b, 0, 1)
 extendedGCD a b =
-  let (greatestCommonDivisor, y, x) = extendedGCD (b `mod` a) a
-   in (greatestCommonDivisor, x - (b `div` a) * y, y)
+    let (greatestCommonDivisor, y, x) = extendedGCD (b `mod` a) a
+     in (greatestCommonDivisor, x - (b `div` a) * y, y)
 
 modularInverse :: Integer -> Integer -> Word32
 modularInverse a modulus =
-  let (greatestCommonDivisor, x, _) = extendedGCD a modulus
-   in if greatestCommonDivisor /= 1
-        then error $ "No inverse is found for " ++ show a
-        else fromIntegral (x `mod` modulus)
+    let (greatestCommonDivisor, x, _) = extendedGCD a modulus
+     in if greatestCommonDivisor /= 1
+            then error $ "No inverse is found for " ++ show a
+            else fromIntegral (x `mod` modulus)
 
 salt :: Word32
 salt = 0x17654321
@@ -57,11 +58,11 @@ invertedSalt = modularInverse (fromIntegral salt) (fromIntegral (maxBound :: Wor
 -- | Deterministic hash function. Same input always returns the same output.
 scramble :: Int -> Int
 scramble original =
-  let normalized = fromIntegral original :: Word32
-      base = normalized * salt
-      inverted = bitReverse base
-      result = inverted * invertedSalt
-   in fromIntegral result
+    let normalized = fromIntegral original :: Word32
+        base = normalized * salt
+        inverted = bitReverse base
+        result = inverted * invertedSalt
+     in fromIntegral result
 
 -- | Alphanumeric characters: @a-z@, @A-Z@, @0-9@ (62 characters).
 alphanumeric :: [Char]
@@ -79,6 +80,6 @@ slug = ['a' .. 'z'] ++ ['0' .. '9'] ++ ['-']
 numeric :: [Char]
 numeric = ['0' .. '9']
 
--- | Symbol characters: @!-/@, @:-\@@, @[-`@, @{-~@ (32 characters).
+-- | Symbol characters: @!-/@, @:-\@@, @[-`@, @{\-~@ (32 characters).
 symbolCharacters :: [Char]
 symbolCharacters = ['!' .. '/'] ++ [':' .. '@'] ++ ['[' .. '`'] ++ ['{' .. '~']
