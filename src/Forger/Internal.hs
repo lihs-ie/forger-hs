@@ -21,6 +21,7 @@ module Forger.Internal (
 where
 
 import Data.Bits (shiftL, shiftR, (.&.), (.|.))
+import Data.List (foldl')
 import Data.Word (Word32)
 
 bitReverse :: Word32 -> Word32
