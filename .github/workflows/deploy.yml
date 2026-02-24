@@ -1,0 +1,67 @@
+name: Deploy to Hackage
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Hackage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract package version
+        id: version
+        run: |
+          VERSION=$(sed -n 's/^version:[[:space:]]*//p' forger.cabal | tr -d '[:space:]')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version exists on Hackage
+        id: check
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://hackage.haskell.org/package/forger-${{ steps.version.outputs.version }})
+          if [ "$STATUS" = "200" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: haskell-actions/setup@v2
+        if: steps.check.outputs.exists == 'false'
+        id: setup
+        with:
+          ghc-version: "9.10"
+          cabal-version: "latest"
+
+      - name: Restore cached dependencies
+        if: steps.check.outputs.exists == 'false'
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: deploy-${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-${{ hashFiles('**/*.cabal') }}
+          restore-keys: deploy-${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-
+
+      - name: Build and test
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          cabal update
+          cabal build all
+          cabal test all
+
+      - name: Create source distribution
+        if: steps.check.outputs.exists == 'false'
+        run: cabal sdist
+
+      - name: Generate Hackage documentation
+        if: steps.check.outputs.exists == 'false'
+        run: cabal haddock --haddock-for-hackage --enable-doc
+
+      - name: Upload to Hackage
+        if: steps.check.outputs.exists == 'false'
+        uses: haskell-actions/hackage-publish@v1
+        with:
+          hackageToken: ${{ secrets.HACKAGE_TOKEN }}
+          packagesPath: dist-newstyle/sdist
+          docsPath: dist-newstyle
+          publish: true
