@@ -61,6 +61,7 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         uses: haskell-actions/hackage-publish@v1
         with:
+          hackageServer: https://hackage.haskell.org
           hackageToken: ${{ secrets.HACKAGE_TOKEN }}
           packagesPath: dist-newstyle/sdist
           docsPath: dist-newstyle
