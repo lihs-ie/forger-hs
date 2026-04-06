@@ -9,7 +9,7 @@ jobs:
     name: Hackage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Extract package version
         id: version
@@ -36,7 +36,7 @@ jobs:
 
       - name: Restore cached dependencies
         if: steps.check.outputs.exists == 'false'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.setup.outputs.cabal-store }}
           key: deploy-${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-${{ hashFiles('**/*.cabal') }}
